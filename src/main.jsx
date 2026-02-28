@@ -1,13 +1,7 @@
-/**
- * main.jsx — Punto de montaje de React
- *
- * IMPORTANTE: <AuthProvider> debe envolver a <App> para que
- * useAuth() funcione en cualquier componente de la jerarquía.
- */
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider } from './hooks/useAuth'
+import { AuthProvider } from './hooks/useAuth.jsx'
 import App from './App.jsx'
 import './index.css'
 

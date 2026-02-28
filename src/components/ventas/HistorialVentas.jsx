@@ -77,7 +77,7 @@ export default function HistorialVentas({ userId, refreshKey }) {
                   <p className="font-bold text-gray-900">{sym}{parseFloat(v.monto_total).toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Comisión 25%</p>
+                  <p className="text-xs text-gray-400">Comisión 20%</p>
                   <p className="font-bold text-green-600">{sym}{parseFloat(v.comision).toFixed(2)}</p>
                 </div>
               </div>

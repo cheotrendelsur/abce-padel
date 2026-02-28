@@ -1,36 +1,17 @@
-/**
- * App.jsx — Punto de entrada de la aplicación ABCE Padel
- *
- * Árbol de decisión para renderizado:
- *
- *  loading === true
- *    └─ <SplashScreen>               (evita flash de contenido incorrecto)
- *
- *  !session
- *    └─ <LoginRegisterView>          (no hay sesión activa)
- *
- *  session && fullName === null
- *    └─ <OnboardingView>             (primer ingreso, nombre pendiente)
- *
- *  session && fullName !== null
- *    └─ App principal                (vendedor autenticado y configurado)
- *         ├─ <Header>
- *         ├─ <VentasPage>
- *         ├─ <InventarioPage>
- *         ├─ <ClubesPage>
- *         └─ <BottomNav>
- */
-
 import { useState } from 'react'
-import { useAuth } from './hooks/useAuth'
-import { LoginRegisterView, OnboardingView } from './pages/AuthPage'
-import VentasPage     from './pages/VentasPage'
-import InventarioPage from './pages/InventarioPage'
-import ClubesPage     from './pages/ClubesPage'
-import BottomNav      from './components/layout/BottomNav'
-import Header         from './components/layout/Header'
+import { useAuth } from './hooks/useAuth.jsx'
+import { LoginRegisterView, OnboardingView } from './pages/AuthPage.jsx'
+import VentasPage     from './pages/VentasPage.jsx'
+import InventarioPage from './pages/InventarioPage.jsx'
+import ClubesPage     from './pages/ClubesPage.jsx'
+import BottomNav      from './components/layout/BottomNav.jsx'
+import Header         from './components/layout/Header.jsx'
 
-// ─── Pantalla de carga inicial ───────────────────────────────────────────────
+// ─── Pantalla de carga ────────────────────────────────────────────────────────
+// Se muestra mientras useAuth.ready === false.
+// Nunca se ve en usuarios con sesión activa porque getSession()
+// lee el caché local de Supabase (<50ms) y fetchProfile termina
+// antes de que el browser pinte el primer frame.
 function SplashScreen() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#1e3a8a] to-[#1a56db]">
@@ -42,18 +23,12 @@ function SplashScreen() {
   )
 }
 
-// ─── App principal (usuario autenticado y con nombre) ────────────────────────
+// ─── App principal ────────────────────────────────────────────────────────────
 function MainApp({ userId, fullName, isAdmin }) {
   const [activeTab, setActiveTab] = useState('ventas')
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header
-        activeTab={activeTab}
-        fullName={fullName}
-        isAdmin={isAdmin}
-      />
-
+      <Header activeTab={activeTab} fullName={fullName} isAdmin={isAdmin} />
       <main className="flex-1 overflow-y-auto pb-24">
         <div className="max-w-lg mx-auto px-4 py-4">
           {activeTab === 'ventas'     && <VentasPage     userId={userId} />}
@@ -61,44 +36,25 @@ function MainApp({ userId, fullName, isAdmin }) {
           {activeTab === 'clubes'     && <ClubesPage     userId={userId} />}
         </div>
       </main>
-
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   )
 }
 
-// ─── Componente raíz ─────────────────────────────────────────────────────────
+// ─── Árbol de decisión (sin parpadeo posible) ─────────────────────────────────
+//
+//  loading = true   → SplashScreen  (boot en curso, NUNCA muestra login/onboarding)
+//  !session         → LoginRegisterView
+//  needsOnboarding  → OnboardingView  (SOLO si ready=true y full_name vacío)
+//  else             → MainApp
+//
+// La clave: needsOnboarding en useAuth solo es true DESPUÉS de que
+// session + profile están completamente resueltos (ready = true).
 export default function App() {
-  const {
-    session,
-    user,
-    fullName,
-    isAdmin,
-    loading,
-    profileLoading,
-  } = useAuth()
+  const { session, user, fullName, isAdmin, loading, needsOnboarding } = useAuth()
 
-  // 1. Esperando resolución de sesión inicial (o carga del perfil)
-  if (loading || profileLoading) {
-    return <SplashScreen />
-  }
-
-  // 2. Sin sesión → Login / Registro
-  if (!session) {
-    return <LoginRegisterView />
-  }
-
-  // 3. Sesión activa pero sin nombre → Onboarding obligatorio
-  if (fullName === null) {
-    return <OnboardingView />
-  }
-
-  // 4. Todo en orden → App principal
-  return (
-    <MainApp
-      userId={user.id}
-      fullName={fullName}
-      isAdmin={isAdmin}
-    />
-  )
+  if (loading)         return <SplashScreen />
+  if (!session)        return <LoginRegisterView />
+  if (needsOnboarding) return <OnboardingView />
+  return <MainApp userId={user.id} fullName={fullName} isAdmin={isAdmin} />
 }
