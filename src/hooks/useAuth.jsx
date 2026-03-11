@@ -123,8 +123,7 @@ export function AuthProvider({ children }) {
   // Nunca es true durante la carga → imposible el parpadeo de la pantalla de nombre
   const needsOnboarding =
     auth.ready                   &&   // boot terminado
-    auth.session !== null        &&   // hay sesión
-    auth.session !== undefined   &&   // (no en boot)
+    auth.session !== null        &&   // hay sesión (null = sin sesión, nunca undefined aquí)
     (
       !auth.profile              ||   // fila no existe (trigger falló)
       !auth.profile.full_name    ||   // full_name es null

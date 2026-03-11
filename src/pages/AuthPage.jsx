@@ -20,25 +20,32 @@ export function LoginRegisterView() {
   async function handleSubmit(e) {
     e.preventDefault()
     setLoading(true)
+    // success = true means auth transition is in progress → keep spinner until unmount
+    let success = false
     try {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
         // SIGNED_IN en useAuth → carga session + profile atómicamente → App redirige
+        success = true
 
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
         if (!data.session) {
+          // Email confirmation required: stay on form, reset loading
           toast.error('Revisa tu correo para confirmar tu cuenta.')
           return
         }
+        // SIGNED_IN disparará → OnboardingView; mantener spinner hasta desmonte
+        success = true
         toast.success('¡Cuenta creada! Completa tu perfil.')
       }
     } catch (err) {
       toast.error(ERROR_MSGS[err.message] ?? err.message)
     } finally {
-      setLoading(false)
+      // Only reset loading if we're staying on this page (error or email-confirm path)
+      if (!success) setLoading(false)
     }
   }
 
