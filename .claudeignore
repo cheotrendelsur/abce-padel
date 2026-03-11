@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Builds y Vercel/Next.js
+.next/
+out/
+dist/
+build/
+.vercel/
+
+# Control de versiones y Entorno
+.git/
+.env*
+.DS_Store
+
+# Archivos multimedia (Innecesarios para el código)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.ico
+*.mp4
+*.webm
+*.pdf
+
+# Logs y Supabase local
+*.log
+supabase/.temp/
+supabase/.branch/

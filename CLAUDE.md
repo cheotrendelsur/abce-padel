@@ -63,3 +63,17 @@ The app throws at startup if these are missing (`src/lib/supabase.js`).
 - **Primary color:** `#1a56db` (defined as `primary` in `tailwind.config.js`). Use `text-primary`, `bg-primary`, etc.
 - **Client autocomplete in `VentaForm`:** only clubs from the `clubes` table are valid clients; `clienteValido` must be `true` to enable form submission.
 - **Stock validation:** done client-side in `VentaForm` before insert, and enforced server-side via DB trigger on `venta_items`.
+
+## Claude Code Skills & Protocols
+Before starting any modification, you MUST adhere to the protocols defined in the following files:
+- `.claude/skills/search-first.md` (Always search before modifying)
+- `.claude/skills/verification-loop.md` (Always self-verify syntax)
+- `.claude/skills/frontend-patterns.md` (React/Tailwind standards)
+- `.claude/skills/coding-standards.md` (Clean code practices)
+- `.claude/skills/postgres-patterns.md` (Database structuring)
+
+## Execution Rule: Pre-execution Planning (Planner Mode)
+For any complex task, feature addition, or large modification, you MUST act as a Planner first:
+1. DO NOT write or modify any code immediately.
+2. First, provide a short, step-by-step plan detailing the exact files you will touch and the logic you will implement.
+3. Stop and wait for my explicit approval (e.g., "yes", "y", or "procede") before executing the actual code changes.
