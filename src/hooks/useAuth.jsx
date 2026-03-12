@@ -56,57 +56,37 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     mountedRef.current = true
 
-    // Timeout de emergencia: si Supabase no responde en 8s, desbloquear la app
-    const timer = setTimeout(() => {
-      safeSet(prev => ({
-        user:    prev.user    === undefined ? null : prev.user,
-        profile: prev.profile === undefined ? null : prev.profile,
-        loading: false,
-      }))
-    }, 8000)
+    // 1. Verificar sesión explícitamente al recargar (Resuelve el bug)
+    const initSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          const profile = await fetchProfile(session.user.id)
+          safeSet({ user: session.user, profile, loading: false })
+        } else {
+          safeSet({ user: null, profile: null, loading: false })
+        }
+      } catch (error) {
+        safeSet({ user: null, profile: null, loading: false })
+      }
+    }
 
-    // ── Fuente única de verdad: onAuthStateChange ─────────────────────────
-    //
-    // INITIAL_SESSION es el evento que Supabase dispara al registrar el listener
-    // con la sesión validada por el servidor. Es el boot trigger definitivo.
-    //
-    // A diferencia de getSession() (que lee el caché local sin verificar el
-    // servidor), INITIAL_SESSION garantiza que la sesión es válida antes de
-    // resolver el estado — eliminando redireccionamentos falsos al login en F5.
-    //
-    // SIGNED_IN maneja logins y registros después del arranque.
-    // Ambos eventos siguen la misma lógica: cargar perfil y actualizar estado.
+    initSession()
+
+    // 2. Escuchar cambios futuros (Login manual o Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-
-        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           const profile = await fetchProfile(session?.user?.id)
-          clearTimeout(timer)
-          // Actualización atómica → un solo render → cero parpadeo
-          safeSet(() => ({
-            user:    session?.user ?? null,
-            profile: profile,
-            loading: false,
-          }))
-          return
-        }
-
-        if (event === 'TOKEN_REFRESHED') {
-          // Solo actualizar el user del token; el perfil no cambia
-          safeSet(prev => ({ ...prev, user: session?.user ?? null }))
-          return
-        }
-
-        if (event === 'SIGNED_OUT') {
-          clearTimeout(timer)
-          safeSet(() => ({ user: null, profile: null, loading: false }))
+          safeSet({ user: session?.user ?? null, profile, loading: false })
+        } else if (event === 'SIGNED_OUT') {
+          safeSet({ user: null, profile: null, loading: false })
         }
       }
     )
 
     return () => {
       mountedRef.current = false
-      clearTimeout(timer)
       subscription.unsubscribe()
     }
   }, [])
