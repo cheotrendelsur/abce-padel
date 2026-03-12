@@ -17,11 +17,25 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ```
 abce-padel
+├─ .claude
+│  └─ skills
+│     ├─ coding-standards.md
+│     ├─ frontend-patterns.md
+│     ├─ postgres-patterns.md
+│     ├─ search-first.md
+│     └─ verification-loop.md
+├─ .claudeignore
+├─ .env
+├─ CLAUDE.md
 ├─ eslint.config.js
 ├─ index.html
 ├─ package-lock.json
 ├─ package.json
+├─ postcss.config.js
 ├─ public
+│  ├─ apple-touch-icon.png
+│  ├─ icon-192.png
+│  ├─ icon-512.png
 │  └─ vite.svg
 ├─ README.md
 ├─ src
@@ -40,7 +54,7 @@ abce-padel
 │  │     ├─ VentaEditModal.jsx
 │  │     └─ VentaForm.jsx
 │  ├─ hooks
-│  │  └─ useAuth.js
+│  │  └─ useAuth.jsx
 │  ├─ index.css
 │  ├─ lib
 │  │  └─ supabase.js
@@ -50,6 +64,7 @@ abce-padel
 │     ├─ ClubesPage.jsx
 │     ├─ InventarioPage.jsx
 │     └─ VentasPage.jsx
+├─ tailwind.config.js
 └─ vite.config.js
 
 ```

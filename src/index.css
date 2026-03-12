@@ -2,32 +2,267 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   OVERSCROLL / PULL-TO-REFRESH PREVENTION
+   Capa CSS + capa JS (App.jsx) trabajan juntas:
+   - CSS elimina el scroll-chaining y el glow de overscroll
+   - JS (touchmove { passive: false }) cancela el pull-to-refresh nativo
+     en superficies no-scrolleables (header, BottomNav, fondos)
+───────────────────────────────────────────────────────────────────────────── */
+
+html {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  height: 100%;
+  overflow: hidden;
+  -webkit-overflow-scrolling: auto;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  /* position:fixed es la técnica más robusta en iOS Safari para eliminar
+     el rubber-band scroll a nivel de documento */
+  position: fixed;
+  width: 100%;
+  /* Safe areas: notch de iPhone y barra de Android */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* El root de React: único contexto de scroll — los hijos hacen opt-in */
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: relative;
+}
+
+/* ─── CSS variables para safe areas ─────────────────────────────────────────── */
+:root {
+  --sat: env(safe-area-inset-top);
+  --sar: env(safe-area-inset-right);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   BASE STYLES
+───────────────────────────────────────────────────────────────────────────── */
+
 @layer base {
   html {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    overscroll-behavior-y: none;
   }
+
   body {
-    @apply bg-gray-50 text-gray-900;
-    overscroll-behavior-y: none;
+    @apply bg-gray-50 text-gray-900 antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
   * {
+    /* Eliminar highlight azul/gris al tocar en iOS/Android */
     -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevenir selección de texto en elementos UI (feel nativo) */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Re-habilitar selección en campos de texto */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* ── Inputs y controles nativos ──────────────────────────────────────────── */
+
+  input,
+  textarea,
+  select,
+  button {
+    /* Remover estilos nativos de iOS/Android */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Eliminar delay de 300ms en taps */
+    touch-action: manipulation;
+  }
+
+  /* CRÍTICO para iOS: font-size < 16px dispara zoom automático al enfocar
+     un input. Forzar 16px evita ese salto visual. */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Remover spinner en inputs number (mejor UX móvil) */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  /* ── Botones ─────────────────────────────────────────────────────────────── */
+
+  button {
+    cursor: pointer;
+    outline: none;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Tap feedback nativo en móviles */
+  button:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+    transition: all 0.1s ease;
+  }
+
+  /* ── Contenedores scrolleables ───────────────────────────────────────────── */
+
+  /* Los contenedores con overflow-y-auto hacen opt-in al scroll nativo iOS
+     y contienen el overscroll para que no se propague al documento padre */
+  .overflow-y-auto,
+  .overflow-y-scroll,
+  .overflow-auto,
+  .overflow-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Ocultar scrollbar manteniendo la funcionalidad */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SAFE AREA UTILITIES
+───────────────────────────────────────────────────────────────────────────── */
 
 @layer utilities {
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+  .safe-top    { padding-top:    env(safe-area-inset-top);    }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-left   { padding-left:   env(safe-area-inset-left);   }
+  .safe-right  { padding-right:  env(safe-area-inset-right);  }
+  .pb-safe     { padding-bottom: env(safe-area-inset-bottom, 16px); }
+  .pt-safe-top { padding-top:    env(safe-area-inset-top, 0px); }
+
+  .safe-area-inset {
+    padding-top:    env(safe-area-inset-top);
+    padding-right:  env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left:   env(safe-area-inset-left);
   }
-  .pt-safe-top {
-    padding-top: env(safe-area-inset-top, 0px);
+
+  /* ── Rendimiento y animaciones ───────────────────────────────────────────── */
+
+  .gpu-accelerate {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+  }
+
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .transition-optimized {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    will-change: transform, opacity;
+  }
+
+  .tap-feedback:active {
+    transform: scale(0.97);
+    opacity: 0.8;
   }
 }
 
-/* Oculta el BottomNav cuando hay un modal abierto.
-   VentaEditModal añade la clase "modal-open" al <body> al montarse
-   y la elimina al desmontarse. */
+/* ─────────────────────────────────────────────────────────────────────────────
+   FIXES ESPECÍFICOS PARA iOS
+───────────────────────────────────────────────────────────────────────────── */
+
+/* Fix para inputs en iOS que no respetan padding */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Fix para 100vh en móviles (iOS considera la barra de Safari) */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   OPTIMIZACIÓN DE FUENTES
+───────────────────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-display: swap;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MODAL: OCULTAR BOTTOMNAV MIENTRAS EL MODAL DE EDICIÓN ESTÁ ABIERTO
+   VentaEditModal añade "modal-open" al <body> al montarse y lo elimina
+   al desmontarse.
+───────────────────────────────────────────────────────────────────────────── */
+
 body.modal-open .bottom-nav {
   display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DESKTOP / TABLET — revertir optimizaciones táctiles
+───────────────────────────────────────────────────────────────────────────── */
+
+@media (min-width: 768px) {
+  button:active {
+    /* En desktop el feedback de escala se ve raro — desactivar */
+    transform: none;
+    opacity: 1;
+  }
+
+  body {
+    -webkit-overflow-scrolling: auto;
+  }
 }

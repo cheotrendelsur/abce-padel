@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import toast from 'react-hot-toast'
 
+// ─── Mapeo de errores de Supabase a mensajes en español ──────────────────────
 const ERROR_MSGS = {
   'Invalid login credentials':                'Email o contraseña incorrectos.',
   'User already registered':                  'Ya existe una cuenta con ese email.',
@@ -10,46 +11,72 @@ const ERROR_MSGS = {
   'Email not confirmed':                      'Confirma tu correo antes de entrar.',
 }
 
-// ─── Login / Registro ─────────────────────────────────────────────────────────
+// ─── Vista de Login / Registro ────────────────────────────────────────────────
+// Flujo idéntico al de Family Market:
+//   - Un solo formulario que alterna entre login y registro
+//   - signIn/signUp delegan al contexto (no llaman a supabase directamente)
+//   - La redirección la maneja App.jsx vía el estado del contexto
 export function LoginRegisterView() {
-  const [mode,     setMode]     = useState('login')
-  const [email,    setEmail]    = useState('')
+  const { signIn, signUp } = useAuth()
+  const [mode,     setMode]    = useState('login') // 'login' | 'register'
+  const [email,    setEmail]   = useState('')
   const [password, setPassword] = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [loading,  setLoading] = useState(false)
+  const [error,    setError]   = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
+    setError(null)
+
+    // Confirmación de registro (igual que Family Market)
+    if (mode === 'register') {
+      const ok = window.confirm(
+        `¿Estás seguro de que deseas crear una nueva cuenta con el correo:\n${email}?`
+      )
+      if (!ok) return
+    }
+
     setLoading(true)
-    // success = true means auth transition is in progress → keep spinner until unmount
+    // success = true means auth is transitioning → keep spinner until unmount
     let success = false
+
     try {
       if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
-        // SIGNED_IN en useAuth → carga session + profile atómicamente → App redirige
+        const { error: err } = await signIn(email, password)
+        if (err) throw err
+        // SIGNED_IN en useAuth → estado actualizado → App.jsx redirige solo
         success = true
 
       } else {
-        const { data, error } = await supabase.auth.signUp({ email, password })
-        if (error) throw error
+        const { data, error: err } = await signUp(email, password)
+        if (err) throw err
+
         if (!data.session) {
-          // Email confirmation required: stay on form, reset loading
-          toast.error('Revisa tu correo para confirmar tu cuenta.')
+          // Confirmación de email activa en Supabase
+          toast.success('¡Cuenta creada! Revisa tu email para confirmar tu cuenta.')
+          setEmail('')
+          setPassword('')
+          setMode('login')
           return
         }
-        // SIGNED_IN disparará → OnboardingView; mantener spinner hasta desmonte
+        // Confirmación OFF: SIGNED_IN llega → App muestra Onboarding
         success = true
         toast.success('¡Cuenta creada! Completa tu perfil.')
       }
     } catch (err) {
-      toast.error(ERROR_MSGS[err.message] ?? err.message)
+      setError(ERROR_MSGS[err.message] ?? err.message)
     } finally {
-      // Only reset loading if we're staying on this page (error or email-confirm path)
+      // Solo resetear spinner si nos quedamos en esta pantalla (error o email-confirm)
       if (!success) setLoading(false)
     }
   }
 
-  function switchMode(m) { setMode(m); setEmail(''); setPassword('') }
+  function switchMode(m) {
+    setMode(m)
+    setEmail('')
+    setPassword('')
+    setError(null)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1e3a8a] to-[#1a56db] flex items-center justify-center p-4">
@@ -67,14 +94,16 @@ export function LoginRegisterView() {
         {/* Tarjeta */}
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
 
-          {/* Tabs */}
+          {/* Tabs de modo */}
           <div className="flex border-b border-gray-100">
             {[
               { id: 'login',    label: 'Iniciar sesión' },
               { id: 'register', label: 'Crear cuenta'   },
             ].map(tab => (
               <button
-                key={tab.id} type="button" onClick={() => switchMode(tab.id)}
+                key={tab.id}
+                type="button"
+                onClick={() => switchMode(tab.id)}
                 className={`flex-1 py-3.5 text-sm font-semibold transition-colors
                   ${mode === tab.id
                     ? 'text-[#1a56db] border-b-2 border-[#1a56db]'
@@ -87,45 +116,75 @@ export function LoginRegisterView() {
 
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
+
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              <label
+                htmlFor="email"
+                className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5"
+              >
                 Correo electrónico
               </label>
               <input
-                type="email" required autoComplete="email"
-                value={email} onChange={e => setEmail(e.target.value)}
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                inputMode="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
                 placeholder="tu@correo.com"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
                            focus:outline-none focus:ring-2 focus:ring-[#1a56db] focus:border-transparent
                            placeholder:text-gray-300 transition"
+                style={{ fontSize: '16px' }} // evita zoom en iOS
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              <label
+                htmlFor="password"
+                className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5"
+              >
                 Contraseña
               </label>
               <input
-                type="password" required minLength={6}
+                id="password"
+                type="password"
+                required
+                minLength={6}
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                value={password} onChange={e => setPassword(e.target.value)}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
                            focus:outline-none focus:ring-2 focus:ring-[#1a56db] focus:border-transparent
                            placeholder:text-gray-300 transition"
+                style={{ fontSize: '16px' }} // evita zoom en iOS
               />
               {mode === 'register' && (
                 <p className="text-xs text-gray-400 mt-1.5">Mínimo 6 caracteres</p>
               )}
             </div>
 
+            {/* Error en línea (mismo patrón visual que Family Market) */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
+
             <button
-              type="submit" disabled={loading}
+              type="submit"
+              disabled={loading}
               className="w-full bg-[#1a56db] hover:bg-[#1e40af] active:bg-[#1e3a8a]
                          text-white font-semibold py-3 rounded-xl text-sm transition
-                         disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-200 mt-2"
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         shadow-md shadow-blue-200 mt-2"
             >
-              {loading ? 'Un momento...' : mode === 'login' ? 'Entrar' : 'Crear mi cuenta'}
+              {loading
+                ? (mode === 'login' ? 'Iniciando sesión...' : 'Creando cuenta...')
+                : (mode === 'login' ? 'Entrar' : 'Crear mi cuenta')
+              }
             </button>
           </form>
         </div>
@@ -138,14 +197,15 @@ export function LoginRegisterView() {
   )
 }
 
-// ─── Onboarding ───────────────────────────────────────────────────────────────
+// ─── Vista de Onboarding (captura de nombre) ─────────────────────────────────
+// Equivalente a UsernameSetup de Family Market, pero integrado en AuthPage
+// para no necesitar React Router en ABCE Padel.
 export function OnboardingView() {
-  const { user, refreshProfile } = useAuth()
-  const [nombre,      setNombre]      = useState('')
-  const [loading,     setLoading]     = useState(false)
-  const [signingOut,  setSigningOut]  = useState(false)
+  const { user, signOut, refreshProfile } = useAuth()
+  const [nombre,     setNombre]     = useState('')
+  const [loading,    setLoading]    = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
-  // ── Guardar nombre ────────────────────────────────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault()
     const trimmed = nombre.trim()
@@ -156,6 +216,7 @@ export function OnboardingView() {
 
     setLoading(true)
     try {
+      // UPSERT cubre el caso en que el trigger de Supabase no creó la fila
       const { error } = await supabase
         .from('profiles')
         .upsert(
@@ -166,27 +227,25 @@ export function OnboardingView() {
 
       toast.success(`¡Bienvenido, ${trimmed}!`)
 
-      // refreshProfile actualiza auth.profile atómicamente →
+      // refreshProfile actualiza profile en el contexto →
       // needsOnboarding pasa a false → App.jsx renderiza MainApp
       await refreshProfile()
 
     } catch (err) {
       toast.error(err.message)
-      setLoading(false) // solo si falla; si sale bien el componente se desmonta
+      setLoading(false) // solo si falla; si sale bien este componente se desmonta
     }
+    // NO hay finally con setLoading(false): si todo salió bien, App.jsx
+    // desmonta este componente y llamar setLoading en un componente desmontado
+    // puede congelar el estado antes de que React haga el swap de pantalla.
   }
 
-  // ── Cerrar sesión desde Onboarding ────────────────────────────────────────
-  // supabase.auth.signOut() dispara SIGNED_OUT en onAuthStateChange →
-  // useAuth pone session = null, profile = null →
-  // App.jsx renderiza <LoginRegisterView> automáticamente.
   async function handleSignOut() {
     setSigningOut(true)
     try {
-      await supabase.auth.signOut()
-      // No hay redirección manual: el SIGNED_OUT event en useAuth
-      // actualiza el estado y App.jsx lleva al usuario al login solo.
-    } catch (err) {
+      await signOut() // usa el método del contexto, igual que Family Market
+      // SIGNED_OUT en useAuth → user=null → App.jsx renderiza LoginRegisterView
+    } catch {
       toast.error('Error al cerrar sesión')
       setSigningOut(false)
     }
@@ -208,7 +267,6 @@ export function OnboardingView() {
         {/* Tarjeta */}
         <div className="bg-white rounded-2xl shadow-2xl p-6">
 
-          {/* Icono */}
           <div className="flex items-center justify-center w-14 h-14 bg-blue-50 rounded-2xl mx-auto mb-4">
             <svg viewBox="0 0 24 24" fill="none" stroke="#1a56db" strokeWidth="1.8" className="w-7 h-7">
               <path strokeLinecap="round" strokeLinejoin="round"
@@ -227,9 +285,13 @@ export function OnboardingView() {
                 Nombre de usuario *
               </label>
               <input
-                type="text" required autoFocus
-                value={nombre} onChange={e => setNombre(e.target.value)}
+                type="text"
+                required
+                autoFocus
+                value={nombre}
+                onChange={e => setNombre(e.target.value)}
                 placeholder="Ej: Carlos Martínez"
+                style={{ fontSize: '16px' }}
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
                            focus:outline-none focus:ring-2 focus:ring-[#1a56db] focus:border-transparent
                            placeholder:text-gray-300 transition"
@@ -240,7 +302,8 @@ export function OnboardingView() {
             </div>
 
             <button
-              type="submit" disabled={loading || signingOut || !nombre.trim()}
+              type="submit"
+              disabled={loading || signingOut || !nombre.trim()}
               className="w-full bg-[#1a56db] hover:bg-[#1e40af] text-white font-semibold
                          py-3 rounded-xl text-sm transition disabled:opacity-50
                          disabled:cursor-not-allowed shadow-md shadow-blue-200"
@@ -250,7 +313,7 @@ export function OnboardingView() {
           </form>
         </div>
 
-        {/* Cerrar sesión — con estado de carga para feedback inmediato */}
+        {/* Escape para cuenta equivocada */}
         <button
           onClick={handleSignOut}
           disabled={signingOut || loading}

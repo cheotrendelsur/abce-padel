@@ -1,10 +1,20 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-const AuthContext = createContext(null)
+// ─── Contexto ─────────────────────────────────────────────────────────────────
+const AuthContext = createContext({})
+
+// ─── Hook de consumo (igual que Family Market) ───────────────────────────────
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) throw new Error('useAuth debe usarse dentro de AuthProvider')
+  return context
+}
 
 // ─── fetchProfile: función pura fuera del componente ─────────────────────────
-// No se recrea en cada render → sin stale closures en useEffect.
+// Fuera del componente = nunca se recrea en cada render, sin stale closures.
+// Usa maybeSingle() en lugar de single() para no lanzar error si la fila
+// aún no existe (e.g. trigger de Supabase que no corrió a tiempo).
 async function fetchProfile(userId) {
   if (!userId) return null
   try {
@@ -14,77 +24,82 @@ async function fetchProfile(userId) {
       .eq('id', userId)
       .maybeSingle()
     if (error) {
-      console.warn('[useAuth] fetchProfile error:', error.message)
+      console.error('[AuthContext] Error al obtener perfil:', error)
       return null
     }
     return data ?? null
   } catch (e) {
-    console.warn('[useAuth] fetchProfile excepción:', e)
+    console.error('[AuthContext] fetchProfile excepción:', e)
     return null
   }
 }
 
-// ─── Estado inicial ───────────────────────────────────────────────────────────
-const BOOT_STATE = {
-  session: undefined, // undefined = todavía cargando
-  profile: undefined, // undefined = todavía cargando
-  ready:   false,
-}
-
 // ─── Provider ────────────────────────────────────────────────────────────────
-export function AuthProvider({ children }) {
-  const [auth, setAuth] = useState(BOOT_STATE)
-  const mountedRef      = useRef(true)
+export const AuthProvider = ({ children }) => {
+  // Estado atómico: session + profile se actualizan juntos en un solo setState
+  // para que React nunca vea un estado intermedio inconsistente.
+  // Esto elimina el parpadeo de la pantalla de Onboarding que ocurría cuando
+  // session ya estaba resuelta pero profile todavía era undefined.
+  const [authState, setAuthState] = useState({
+    user:    undefined, // undefined = boot en curso | null = sin sesión
+    profile: undefined, // undefined = boot en curso | null = sin perfil
+    loading: true,
+  })
 
-  // Solo actualiza el estado si el componente sigue montado
+  const mountedRef = useRef(true)
+
+  // Actualiza el estado solo si el componente sigue montado (evita memory leaks)
   function safeSet(updater) {
-    if (mountedRef.current) setAuth(updater)
+    if (mountedRef.current) setAuthState(updater)
   }
 
   useEffect(() => {
     mountedRef.current = true
 
-    // Timeout de emergencia: 8s máximo en splash
+    // Timeout de emergencia: si Supabase no responde en 8s, desbloquear la app
     const timer = setTimeout(() => {
       safeSet(prev => ({
-        session: prev.session === undefined ? null : prev.session,
+        user:    prev.user    === undefined ? null : prev.user,
         profile: prev.profile === undefined ? null : prev.profile,
-        ready:   true,
+        loading: false,
       }))
     }, 8000)
 
-    // Fuente única de verdad: onAuthStateChange
+    // ── Fuente única de verdad: onAuthStateChange ─────────────────────────
     //
     // INITIAL_SESSION es el evento que Supabase dispara al registrar el listener
-    // con la sesión ya validada por el servidor (incluye token refresh si era
-    // necesario). Es el único punto donde sabemos con certeza si hay sesión o no.
+    // con la sesión validada por el servidor. Es el boot trigger definitivo.
     //
-    // Antes se usaba getSession() para el arranque, pero ese método devuelve
-    // el caché local sin esperar la validación del servidor — lo que provocaba
-    // que ready=true se disparara con estado incorrecto antes de que la
-    // verificación real terminara, causando redirecciones falsas al login.
+    // A diferencia de getSession() (que lee el caché local sin verificar el
+    // servidor), INITIAL_SESSION garantiza que la sesión es válida antes de
+    // resolver el estado — eliminando redireccionamentos falsos al login en F5.
+    //
+    // SIGNED_IN maneja logins y registros después del arranque.
+    // Ambos eventos siguen la misma lógica: cargar perfil y actualizar estado.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        // INITIAL_SESSION es el boot trigger definitivo.
-        // SIGNED_IN maneja logins y registros posteriores al arranque.
-        // Ambos tienen la misma lógica: cargar perfil y resolver el estado.
+      async (event, session) => {
+
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-          const p = await fetchProfile(newSession?.user?.id)
+          const profile = await fetchProfile(session?.user?.id)
           clearTimeout(timer)
-          safeSet(() => ({ session: newSession ?? null, profile: p, ready: true }))
+          // Actualización atómica → un solo render → cero parpadeo
+          safeSet(() => ({
+            user:    session?.user ?? null,
+            profile: profile,
+            loading: false,
+          }))
           return
         }
 
-        // TOKEN_REFRESHED: solo actualizar la sesión, el perfil no cambia
         if (event === 'TOKEN_REFRESHED') {
-          safeSet(prev => ({ ...prev, session: newSession }))
+          // Solo actualizar el user del token; el perfil no cambia
+          safeSet(prev => ({ ...prev, user: session?.user ?? null }))
           return
         }
 
-        // SIGNED_OUT: limpiar todo → App.jsx renderiza LoginRegisterView
         if (event === 'SIGNED_OUT') {
           clearTimeout(timer)
-          safeSet(() => ({ session: null, profile: null, ready: true }))
+          safeSet(() => ({ user: null, profile: null, loading: false }))
         }
       }
     )
@@ -94,51 +109,64 @@ export function AuthProvider({ children }) {
       clearTimeout(timer)
       subscription.unsubscribe()
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
-  // ── refreshProfile ──────────────────────────────────────────────────────────
-  // Llamado por OnboardingView después de guardar el nombre.
-  // Actualiza solo el profile sin tocar session ni ready.
-  async function refreshProfile() {
-    const { data: { session: s } } = await supabase.auth.getSession()
-    const p = await fetchProfile(s?.user?.id)
-    safeSet(prev => ({ ...prev, profile: p }))
+  // ── Métodos de autenticación (mismo patrón que Family Market) ─────────────
+  const signUp = async (email, password) => {
+    const { data, error } = await supabase.auth.signUp({ email, password })
+    return { data, error }
   }
 
-  // ── Estado derivado ─────────────────────────────────────────────────────────
-  // loading: true mientras ready sea false (boot en curso)
-  const loading = !auth.ready
+  const signIn = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    return { data, error }
+  }
 
-  // needsOnboarding: SOLO true cuando todo está resuelto Y no hay nombre
-  // Nunca es true durante la carga → imposible el parpadeo de la pantalla de nombre
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut()
+    return { error }
+    // No hay redirección manual: SIGNED_OUT en onAuthStateChange pone
+    // user=null → App.jsx detecta !session y renderiza LoginRegisterView
+  }
+
+  // ── refreshProfile ────────────────────────────────────────────────────────
+  // Llamado por OnboardingView después de guardar el nombre.
+  // Solo actualiza profile, sin tocar user ni loading.
+  const refreshProfile = async () => {
+    if (!authState.user?.id) return
+    const profile = await fetchProfile(authState.user.id)
+    safeSet(prev => ({ ...prev, profile }))
+  }
+
+  // ── needsOnboarding ───────────────────────────────────────────────────────
+  // SOLO es true cuando el boot terminó (loading=false) Y el perfil no tiene nombre.
+  // Nunca es true durante la carga → imposible el parpadeo de la pantalla de nombre.
   const needsOnboarding =
-    auth.ready                   &&   // boot terminado
-    auth.session !== null        &&   // hay sesión (null = sin sesión, nunca undefined aquí)
+    !authState.loading          &&
+    authState.user  !== null    &&
+    authState.user  !== undefined &&
     (
-      !auth.profile              ||   // fila no existe (trigger falló)
-      !auth.profile.full_name    ||   // full_name es null
-      auth.profile.full_name.trim() === '' // full_name es string vacío
+      !authState.profile              ||
+      !authState.profile.full_name    ||
+      authState.profile.full_name.trim() === ''
     )
 
-  return (
-    <AuthContext.Provider value={{
-      session:         auth.session   ?? null,
-      user:            auth.session?.user    ?? null,
-      profile:         auth.profile   ?? null,
-      fullName:        auth.profile?.full_name  ?? null,
-      isAdmin:         auth.profile?.is_admin   ?? false,
-      loading,
-      needsOnboarding,
-      refreshProfile,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
+  const value = {
+    // Exponer 'user' igual que Family Market para compatibilidad con componentes existentes
+    user:            authState.user    ?? null,
+    profile:         authState.profile ?? null,
+    loading:         authState.loading,
+    needsOnboarding,
+    // Alias para compatibilidad con código existente de ABCE Padel
+    session:         authState.user ? { user: authState.user } : null,
+    fullName:        authState.profile?.full_name ?? null,
+    isAdmin:         authState.profile?.is_admin  ?? false,
+    // Métodos
+    signUp,
+    signIn,
+    signOut,
+    refreshProfile,
+  }
 
-// ─── Hook de consumo ──────────────────────────────────────────────────────────
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth debe usarse dentro de <AuthProvider>')
-  return ctx
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
