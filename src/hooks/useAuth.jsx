@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     mountedRef.current = true
 
-    // ── Timeout de emergencia: 8s máximo en splash ──────────────────────────
+    // Timeout de emergencia: 8s máximo en splash
     const timer = setTimeout(() => {
       safeSet(prev => ({
         session: prev.session === undefined ? null : prev.session,
@@ -53,31 +53,27 @@ export function AuthProvider({ children }) {
       }))
     }, 8000)
 
-    // ── PASO 1: Leer sesión existente al arrancar (caché local = <50ms) ─────
-    // getSession + fetchProfile se resuelven JUNTOS en un único setState
-    // → React nunca ve un estado intermedio → cero parpadeo de Onboarding
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      const p = await fetchProfile(s?.user?.id)
-      clearTimeout(timer)
-      safeSet(() => ({ session: s ?? null, profile: p, ready: true }))
-    })
-
-    // ── PASO 2: Suscribirse a cambios POSTERIORES al arranque ───────────────
+    // Fuente única de verdad: onAuthStateChange
     //
-    // IMPORTANTE — por qué NO usamos bootDoneRef aquí:
-    // React StrictMode desmonta + remonta cada componente en desarrollo.
-    // useRef persiste entre remounts, así que si usamos un ref como "ya hice boot"
-    // el listener onAuthStateChange nunca se suscribe en el segundo mount (el real),
-    // rompiendo completamente la reactividad de login/logout.
+    // INITIAL_SESSION es el evento que Supabase dispara al registrar el listener
+    // con la sesión ya validada por el servidor (incluye token refresh si era
+    // necesario). Es el único punto donde sabemos con certeza si hay sesión o no.
     //
-    // La solución correcta: siempre suscribirse, e ignorar INITIAL_SESSION
-    // (que Supabase dispara al registrar el listener) porque getSession ya lo
-    // manejó en el Paso 1.
+    // Antes se usaba getSession() para el arranque, pero ese método devuelve
+    // el caché local sin esperar la validación del servidor — lo que provocaba
+    // que ready=true se disparara con estado incorrecto antes de que la
+    // verificación real terminara, causando redirecciones falsas al login.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        // INITIAL_SESSION: Supabase lo dispara al registrar el listener.
-        // Lo ignoramos porque getSession (Paso 1) ya lo procesó.
-        if (event === 'INITIAL_SESSION') return
+        // INITIAL_SESSION es el boot trigger definitivo.
+        // SIGNED_IN maneja logins y registros posteriores al arranque.
+        // Ambos tienen la misma lógica: cargar perfil y resolver el estado.
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          const p = await fetchProfile(newSession?.user?.id)
+          clearTimeout(timer)
+          safeSet(() => ({ session: newSession ?? null, profile: p, ready: true }))
+          return
+        }
 
         // TOKEN_REFRESHED: solo actualizar la sesión, el perfil no cambia
         if (event === 'TOKEN_REFRESHED') {
@@ -85,15 +81,9 @@ export function AuthProvider({ children }) {
           return
         }
 
-        // SIGNED_IN: login exitoso o registro con confirmación OFF
-        // Cargamos sesión + perfil en un solo setState → sin parpadeo
-        if (event === 'SIGNED_IN') {
-          const p = await fetchProfile(newSession?.user?.id)
-          safeSet(() => ({ session: newSession, profile: p, ready: true }))
-        }
-
         // SIGNED_OUT: limpiar todo → App.jsx renderiza LoginRegisterView
         if (event === 'SIGNED_OUT') {
+          clearTimeout(timer)
           safeSet(() => ({ session: null, profile: null, ready: true }))
         }
       }
