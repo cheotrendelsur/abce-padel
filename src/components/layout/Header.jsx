@@ -29,7 +29,11 @@ export default function Header({ activeTab, fullName, isAdmin }) {
 
       {/* Izquierda: logo + título */}
       <div className="flex items-center gap-2.5 min-w-0">
-        <img src="/icon-192.png" alt="Venta Track Logo" className="h-8 w-auto flex-shrink-0" />
+        <img 
+          src="/icon-192.png" 
+          alt="Venta Track Logo" 
+          className="h-8 w-auto flex-shrink-0 rounded-xl" 
+        />
         <div className="min-w-0">
           <p className="text-[10px] text-bone/70 leading-none">Track</p>
           <p className="font-semibold text-sm leading-tight truncate">

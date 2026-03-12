@@ -88,7 +88,7 @@ export function LoginRegisterView() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/icon-192.png" alt="Venta Track Logo" className="w-22 h-22 mx-auto mb-5 drop-shadow-xl rounded-3xl" />
+          <img src="/icon-192.png" alt="Venta Track Logo" className="w-22 h-22 mx-auto mb-5 drop-shadow-xl rounded-xl" />
           <h1 className="text-white text-2xl font-bold tracking-tight">Track</h1>
           <p className="text-bone/80 text-sm mt-1">Portal de Ventas</p>
         </div>
@@ -259,7 +259,7 @@ export function OnboardingView() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/icon-192.png" alt="Venta Track Logo" className="w-22 h-22 mx-auto mb-5 drop-shadow-xl rounded-3xl" />
+          <img src="/icon-192.png" alt="Venta Track Logo" className="w-22 h-22 mx-auto mb-5 drop-shadow-xl rounded-xl" />
           <h1 className="text-white text-2xl font-bold">¡Bienvenido!</h1>
           <p className="text-bone/80 text-sm mt-1">{user?.email}</p>
         </div>

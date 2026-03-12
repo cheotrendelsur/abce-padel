@@ -116,7 +116,7 @@ function usePreventOverscroll() {
 function SplashScreen() {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary-dark to-primary">
-      <img src="/icon-512.png" alt="Venta Track" className="w-32 h-32 mb-4" />
+      <img src="/icon-512.png" alt="Venta Track" className="w-32 h-32 mb-4 rounded-xl" />
       <p className="text-bone text-sm mt-1 tracking-wide">Cargando...</p>
     </div>
   )
