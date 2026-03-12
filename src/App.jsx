@@ -115,11 +115,9 @@ function usePreventOverscroll() {
 // ─── Splash screen ────────────────────────────────────────────────────────────
 function SplashScreen() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#1e3a8a] to-[#1a56db]">
-      <div className="w-20 h-20 bg-white/10 backdrop-blur rounded-3xl flex items-center justify-center shadow-xl animate-pulse">
-        <span className="text-white text-4xl font-black">A</span>
-      </div>
-      <p className="text-blue-200 text-sm mt-5 tracking-wide">Cargando...</p>
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary-dark to-primary">
+      <img src="/icon-512.png" alt="Venta Track" className="w-32 h-32 mb-4" />
+      <p className="text-bone text-sm mt-1 tracking-wide">Cargando...</p>
     </div>
   )
 }
@@ -132,7 +130,7 @@ function MainApp({ userId, fullName, isAdmin }) {
   const [activeTab, setActiveTab] = useState('ventas')
 
   return (
-    <div className="fixed inset-0 bg-gray-50 flex flex-col">
+    <div className="fixed inset-0 bg-bone flex flex-col">
       <Header activeTab={activeTab} fullName={fullName} isAdmin={isAdmin} />
 
       {/* Único elemento con scroll en toda la app.

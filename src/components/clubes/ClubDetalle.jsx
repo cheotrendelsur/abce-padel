@@ -141,12 +141,12 @@ export default function ClubDetalle({ club, userId, onClose, onUpdated }) {
 
             {/* Fechas futuras automáticas */}
             {fechas34y5.length > 0 && (
-              <div className="mt-4 bg-blue-50 rounded-xl p-4 space-y-2">
-                <p className="text-xs font-semibold text-blue-700 mb-2">📌 Próximos contactos (cada 4 días)</p>
+              <div className="mt-4 bg-primary/10 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-semibold text-primary mb-2">📌 Próximos contactos (cada 4 días)</p>
                 {fechas34y5.map(({ label, fecha }) => (
                   <div key={label} className="flex items-center justify-between">
-                    <span className="text-sm text-blue-800 font-medium">{label}</span>
-                    <span className="text-sm text-blue-900 font-bold">{fmtDate(fecha)}</span>
+                    <span className="text-sm text-primary font-medium">{label}</span>
+                    <span className="text-sm text-primary font-bold">{fmtDate(fecha)}</span>
                   </div>
                 ))}
               </div>

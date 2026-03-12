@@ -28,17 +28,17 @@ export default function VentasPage({ userId }) {
               type="button"
               onClick={() => setModo('Directa')}
               className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl
-                         border-2 border-[#1a56db] bg-[#1a56db]/5
-                         hover:bg-[#1a56db]/10 active:scale-95 transition-all"
+                         border-2 border-primary bg-primary/5
+                         hover:bg-primary/10 active:scale-95 transition-all"
             >
-              <div className="w-12 h-12 rounded-xl bg-[#1a56db] flex items-center justify-center shadow-md shadow-blue-200">
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round"
                     d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 2.5 2 2.5-2 3.5 2z" />
                 </svg>
               </div>
               <div className="text-center">
-                <p className="font-bold text-[#1a56db] text-sm">Venta Directa</p>
+                <p className="font-bold text-primary text-sm">Venta Directa</p>
                 <p className="text-xs text-gray-400 mt-0.5">Pago inmediato</p>
               </div>
             </button>

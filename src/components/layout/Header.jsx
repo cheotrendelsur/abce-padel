@@ -25,15 +25,13 @@ export default function Header({ activeTab, fullName, isAdmin }) {
     : '?'
 
   return (
-    <header className="bg-[#1a56db] text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-md">
+    <header className="bg-primary text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-md">
 
       {/* Izquierda: logo + título */}
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-          <span className="font-bold text-sm">A</span>
-        </div>
+        <img src="/icon-192.png" alt="Venta Track Logo" className="h-8 w-auto flex-shrink-0" />
         <div className="min-w-0">
-          <p className="text-[10px] text-blue-200 leading-none">Track</p>
+          <p className="text-[10px] text-bone/70 leading-none">Track</p>
           <p className="font-semibold text-sm leading-tight truncate">
             {TAB_TITLES[activeTab]}
           </p>
@@ -51,7 +49,7 @@ export default function Header({ activeTab, fullName, isAdmin }) {
                 Admin
               </span>
             )}
-            <span className="text-blue-100 text-xs font-medium">{fullName}</span>
+            <span className="text-bone text-xs font-medium">{fullName}</span>
           </div>
         )}
 
@@ -65,7 +63,7 @@ export default function Header({ activeTab, fullName, isAdmin }) {
         <button
           onClick={handleLogout}
           title="Cerrar sesión"
-          className="text-blue-200 hover:text-white transition flex items-center gap-1 text-xs"
+          className="text-bone/70 hover:text-white transition flex items-center gap-1 text-xs"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round"

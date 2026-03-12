@@ -203,8 +203,8 @@ export default function VentaEditModal({ venta, onClose, onUpdated }) {
               Cancelar
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 bg-[#1a56db] text-white font-semibold py-3 rounded-xl
-                         hover:bg-[#1e40af] transition disabled:opacity-60 text-sm">
+              className="flex-1 bg-primary text-white font-semibold py-3 rounded-xl
+                         hover:bg-primary-light transition disabled:opacity-60 text-sm">
               {loading ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </div>

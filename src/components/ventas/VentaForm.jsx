@@ -218,7 +218,7 @@ export default function VentaForm({ userId, tipoInicial = 'Directa', onVentaCrea
                 <button
                   type="button"
                   onMouseDown={() => seleccionarClub(club)}
-                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-primary/5 transition
                              flex items-center justify-between"
                 >
                   <span className="font-medium text-gray-800">{club.nombre}</span>
@@ -366,7 +366,7 @@ export default function VentaForm({ userId, tipoInicial = 'Directa', onVentaCrea
       <button
         type="submit"
         disabled={loading || !clienteValido}
-        className="w-full bg-[#1a56db] hover:bg-[#1e40af] text-white font-semibold py-3
+        className="w-full bg-primary hover:bg-primary-light text-white font-semibold py-3
                    rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading ? 'Guardando...' : 'Registrar Venta'}

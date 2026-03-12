@@ -83,16 +83,14 @@ export function LoginRegisterView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1e3a8a] to-[#1a56db] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-dark to-primary flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur rounded-3xl mb-5 shadow-xl">
-            <span className="text-white text-4xl font-black tracking-tight">A</span>
-          </div>
+          <img src="/icon-192.png" alt="Venta Track Logo" className="w-22 h-22 mx-auto mb-5 drop-shadow-xl rounded-3xl" />
           <h1 className="text-white text-2xl font-bold tracking-tight">Track</h1>
-          <p className="text-blue-200 text-sm mt-1">Portal de Ventas</p>
+          <p className="text-bone/80 text-sm mt-1">Portal de Ventas</p>
         </div>
 
         {/* Tarjeta */}
@@ -110,7 +108,7 @@ export function LoginRegisterView() {
                 onClick={() => switchMode(tab.id)}
                 className={`flex-1 py-3.5 text-sm font-semibold transition-colors
                   ${mode === tab.id
-                    ? 'text-[#1a56db] border-b-2 border-[#1a56db]'
+                    ? 'text-primary border-b-2 border-primary'
                     : 'text-gray-400 hover:text-gray-600'}`}
               >
                 {tab.label}
@@ -138,7 +136,7 @@ export function LoginRegisterView() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="tu@correo.com"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                           focus:outline-none focus:ring-2 focus:ring-[#1a56db] focus:border-transparent
+                           focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                            placeholder:text-gray-300 transition"
                 style={{ fontSize: '16px' }} // evita zoom en iOS
               />
@@ -161,7 +159,7 @@ export function LoginRegisterView() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                           focus:outline-none focus:ring-2 focus:ring-[#1a56db] focus:border-transparent
+                           focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                            placeholder:text-gray-300 transition"
                 style={{ fontSize: '16px' }} // evita zoom en iOS
               />
@@ -180,10 +178,10 @@ export function LoginRegisterView() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1a56db] hover:bg-[#1e40af] active:bg-[#1e3a8a]
+              className="w-full bg-primary hover:bg-primary-light active:bg-primary-dark
                          text-white font-semibold py-3 rounded-xl text-sm transition
                          disabled:opacity-50 disabled:cursor-not-allowed
-                         shadow-md shadow-blue-200 mt-2"
+                         shadow-md shadow-primary/20 mt-2"
             >
               {loading
                 ? (mode === 'login' ? 'Iniciando sesión...' : 'Creando cuenta...')
@@ -193,7 +191,7 @@ export function LoginRegisterView() {
           </form>
         </div>
 
-        <p className="text-center text-blue-200/60 text-xs mt-6">
+        <p className="text-center text-bone/60 text-xs mt-6">
           Track © {new Date().getFullYear()}
         </p>
       </div>
@@ -256,16 +254,14 @@ export function OnboardingView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1e3a8a] to-[#1a56db] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-dark to-primary flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur rounded-3xl mb-5 shadow-xl">
-            <span className="text-white text-4xl font-black">A</span>
-          </div>
+          <img src="/icon-192.png" alt="Venta Track Logo" className="w-22 h-22 mx-auto mb-5 drop-shadow-xl rounded-3xl" />
           <h1 className="text-white text-2xl font-bold">¡Bienvenido!</h1>
-          <p className="text-blue-200 text-sm mt-1">{user?.email}</p>
+          <p className="text-bone/80 text-sm mt-1">{user?.email}</p>
         </div>
 
         {/* Tarjeta */}
@@ -297,7 +293,7 @@ export function OnboardingView() {
                 placeholder="Ej: Carlos Martínez"
                 style={{ fontSize: '16px' }}
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                           focus:outline-none focus:ring-2 focus:ring-[#1a56db] focus:border-transparent
+                           focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                            placeholder:text-gray-300 transition"
               />
               <p className="text-xs text-gray-400 mt-1.5">
@@ -308,9 +304,9 @@ export function OnboardingView() {
             <button
               type="submit"
               disabled={loading || signingOut || !nombre.trim()}
-              className="w-full bg-[#1a56db] hover:bg-[#1e40af] text-white font-semibold
+              className="w-full bg-primary hover:bg-primary-light text-white font-semibold
                          py-3 rounded-xl text-sm transition disabled:opacity-50
-                         disabled:cursor-not-allowed shadow-md shadow-blue-200"
+                         disabled:cursor-not-allowed shadow-md shadow-primary/20"
             >
               {loading ? 'Guardando...' : 'Continuar a la app →'}
             </button>
@@ -321,7 +317,7 @@ export function OnboardingView() {
         <button
           onClick={handleSignOut}
           disabled={signingOut || loading}
-          className="block mx-auto mt-4 text-blue-200/60 hover:text-blue-200 text-xs
+          className="block mx-auto mt-4 text-bone/60 hover:text-bone text-xs
                      transition disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {signingOut ? 'Cerrando sesión...' : 'No soy yo — cerrar sesión'}
