@@ -152,7 +152,7 @@ export const AuthProvider = ({ children }) => {
     profile:         authState.profile ?? null,
     loading:         authState.loading,
     needsOnboarding,
-    // Alias para compatibilidad con el resto de ABCE Padel
+    // Alias para compatibilidad con el resto de [Track]
     session:         authState.user ? { user: authState.user } : null,
     fullName:        authState.profile?.full_name ?? null,
     isAdmin:         authState.profile?.is_admin  ?? false,

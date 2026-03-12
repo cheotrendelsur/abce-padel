@@ -33,7 +33,7 @@ export default function Header({ activeTab, fullName, isAdmin }) {
           <span className="font-bold text-sm">A</span>
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] text-blue-200 leading-none">ABCE Padel</p>
+          <p className="text-[10px] text-blue-200 leading-none">Track</p>
           <p className="font-semibold text-sm leading-tight truncate">
             {TAB_TITLES[activeTab]}
           </p>

@@ -91,7 +91,7 @@ export function LoginRegisterView() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur rounded-3xl mb-5 shadow-xl">
             <span className="text-white text-4xl font-black tracking-tight">A</span>
           </div>
-          <h1 className="text-white text-2xl font-bold tracking-tight">ABCE Padel</h1>
+          <h1 className="text-white text-2xl font-bold tracking-tight">Track</h1>
           <p className="text-blue-200 text-sm mt-1">Portal de Ventas</p>
         </div>
 
@@ -194,7 +194,7 @@ export function LoginRegisterView() {
         </div>
 
         <p className="text-center text-blue-200/60 text-xs mt-6">
-          ABCE Padel © {new Date().getFullYear()}
+          Track © {new Date().getFullYear()}
         </p>
       </div>
     </div>
@@ -203,7 +203,7 @@ export function LoginRegisterView() {
 
 // ─── Vista de Onboarding (captura de nombre) ─────────────────────────────────
 // Equivalente a UsernameSetup de Family Market, pero integrado en AuthPage
-// para no necesitar React Router en ABCE Padel.
+// para no necesitar React Router en [Track].
 export function OnboardingView() {
   const { user, signOut, refreshProfile } = useAuth()
   const [nombre,     setNombre]     = useState('')
