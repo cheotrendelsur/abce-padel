@@ -42,6 +42,10 @@ export function LoginRegisterView() {
 
     try {
       if (mode === 'login') {
+        // Wipe any existing or stale session before authenticating.
+        // Equivalent to a full manual logout — clears localStorage and
+        // invalidates the server-side token before issuing a new one.
+        await supabase.auth.signOut({ scope: 'local' })
         const { error: err } = await signIn(email, password)
         if (err) throw err
         // SIGNED_IN en useAuth → estado actualizado → App.jsx redirige solo
