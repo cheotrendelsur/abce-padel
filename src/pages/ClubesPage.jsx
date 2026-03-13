@@ -10,12 +10,19 @@ export default function ClubesPage({ userId }) {
   const [selectedClub,   setSelectedClub]   = useState(null)
 
   async function fetchClubes() {
-    const { data } = await supabase
-      .from('clubes')
-      .select('id, nombre, categoria, telefono_atencion, telefono_dueno')
-      .order('nombre')
-    setClubes(data || [])
-    setLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('clubes')
+        .select('id, nombre, categoria, telefono_atencion, telefono_dueno')
+        .order('nombre')
+      
+      if (error) throw error
+      setClubes(data || [])
+    } catch (err) {
+      console.error('Error cargando clubes:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchClubes() }, [])

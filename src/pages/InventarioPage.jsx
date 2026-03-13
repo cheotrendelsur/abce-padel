@@ -16,13 +16,20 @@ export default function InventarioPage() {
   const [loading,   setLoading]   = useState(true)
 
   async function fetchProductos() {
-    const { data } = await supabase
-      .from('productos')
-      .select('id, nombre, descripcion, stock, precio_referencia')
-      .eq('activo', true)
-      .order('nombre')
-    setProductos(data || [])
-    setLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('productos')
+        .select('id, nombre, descripcion, stock, precio_referencia')
+        .eq('activo', true)
+        .order('nombre')
+      
+      if (error) throw error
+      setProductos(data || [])
+    } catch (err) {
+      console.error('Error cargando inventario:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
