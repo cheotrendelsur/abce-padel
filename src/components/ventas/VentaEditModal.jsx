@@ -154,6 +154,7 @@ export default function VentaEditModal({ venta, onClose, onUpdated }) {
             onChange={cliente.handleChange}
             onFocus={cliente.handleFocus}
             onSeleccionar={cliente.seleccionar}
+            onClear={cliente.limpiar}
           />
 
           {/* ── Fecha + Forma de pago ────────────────────────────────── */}

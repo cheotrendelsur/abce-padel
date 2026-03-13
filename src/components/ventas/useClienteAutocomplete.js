@@ -100,6 +100,13 @@ export function useClienteAutocomplete(valorInicial = '') {
     )
   }
 
+  function limpiar() {
+    setNombreCliente('')
+    setClienteValido(false)
+    setSugerencias([])
+    setMostrarSug(false)
+  }
+
   return {
     nombreCliente,
     clienteValido,
@@ -110,5 +117,6 @@ export function useClienteAutocomplete(valorInicial = '') {
     handleFocus,
     seleccionar,
     validarClienteFinal,
+    limpiar,
   }
 }

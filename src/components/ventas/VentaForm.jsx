@@ -157,6 +157,7 @@ export default function VentaForm({ userId, tipoInicial = 'Directa', onVentaCrea
         onChange={cliente.handleChange}
         onFocus={cliente.handleFocus}
         onSeleccionar={cliente.seleccionar}
+        onClear={cliente.limpiar}
       />
 
       {/* ── Fecha y Forma de pago ─────────────────────────────────────── */}
