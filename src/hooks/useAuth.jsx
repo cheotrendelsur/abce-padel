@@ -47,6 +47,19 @@ export const AuthProvider = ({ children }) => {
     if (mountedRef.current) setAuthState(updater)
   }
 
+  // ── Despertar conexión al volver a la pestaña (Fijar cuelgue en background)
+  useEffect(() => {
+    async function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        await supabase.auth.stopAutoRefresh()
+        await supabase.auth.startAutoRefresh()
+        await supabase.auth.refreshSession()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
   useEffect(() => {
     mountedRef.current = true
     bootDone.current   = false

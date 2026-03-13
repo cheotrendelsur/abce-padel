@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import ClubDetalle from '../components/clubes/ClubDetalle'
 import PullToRefresh from '../components/layout/PullToRefresh'
+import toast from 'react-hot-toast'
 
 export default function ClubesPage({ userId }) {
   const [clubes,         setClubes]         = useState([])
@@ -12,21 +13,38 @@ export default function ClubesPage({ userId }) {
 
   async function fetchClubes() {
     try {
-      const { data, error } = await supabase
-        .from('clubes')
-        .select('id, nombre, categoria, telefono_atencion, telefono_dueno')
-        .order('nombre')
-      
-      if (error) throw error
+      const peticion = (async () => {
+        await supabase.auth.getSession()
+        const { data, error } = await supabase
+          .from('clubes')
+          .select('id, nombre, categoria, telefono_atencion, telefono_dueno')
+          .order('nombre')
+        if (error) throw error
+        return data
+      })()
+
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 8000)
+      )
+
+      const data = await Promise.race([peticion, timeout])
       setClubes(data || [])
     } catch (err) {
       console.error('Error cargando clubes:', err)
+      toast.error('Error de conexión al actualizar')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchClubes() }, [])
+  useEffect(() => { 
+    fetchClubes() 
+    function onWake() {
+      if (document.visibilityState === 'visible') fetchClubes()
+    }
+    document.addEventListener('visibilitychange', onWake)
+    return () => document.removeEventListener('visibilitychange', onWake)
+  }, [])
 
   const filtered = clubes.filter(c => {
     const matchSearch = c.nombre.toLowerCase().includes(search.toLowerCase())
@@ -34,6 +52,10 @@ export default function ClubesPage({ userId }) {
     return matchSearch && matchCat
   })
 
+  // PullToRefresh envuelve TODO — incluyendo el estado de carga.
+  // Si la página queda atascada en "Cargando..." al volver de un tab en
+  // segundo plano, el usuario puede jalar hacia abajo para forzar un refetch
+  // y romper el loop infinito, incluso sin datos visibles.
   return (
     <PullToRefresh onRefresh={fetchClubes}>
       <div className="space-y-3">
@@ -62,7 +84,7 @@ export default function ClubesPage({ userId }) {
           <span className="ml-auto text-xs text-gray-400 self-center">{filtered.length} registros</span>
         </div>
 
-        {/* Lista */}
+        {/* Lista — incluye estado de carga dentro del wrapper */}
         {loading ? (
           <div className="text-center py-12 text-gray-400 text-sm">Cargando...</div>
         ) : (

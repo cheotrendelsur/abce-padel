@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import PullToRefresh from '../components/layout/PullToRefresh'
+import toast from 'react-hot-toast'
 
 const STOCK_LEVELS = [
   { max: 5,  label: 'Crítico',  color: 'bg-red-100 text-red-700',    dot: 'bg-red-500' },
@@ -18,83 +19,94 @@ export default function InventarioPage() {
 
   async function fetchProductos() {
     try {
-      const { data, error } = await supabase
-        .from('productos')
-        .select('id, nombre, descripcion, stock, precio_referencia')
-        .eq('activo', true)
-        .order('nombre')
-      
-      if (error) throw error
+      const peticion = (async () => {
+        await supabase.auth.getSession()
+        const { data, error } = await supabase
+          .from('productos')
+          .select('id, nombre, descripcion, stock, precio_referencia')
+          .eq('activo', true)
+          .order('nombre')
+        if (error) throw error
+        return data
+      })()
+
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 8000)
+      )
+
+      const data = await Promise.race([peticion, timeout])
       setProductos(data || [])
     } catch (err) {
       console.error('Error cargando inventario:', err)
+      toast.error('Error de conexión al actualizar')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchProductos()
-
-    // Nombre único por montaje — evita conflicto de canal duplicado al
-    // remontar el componente tras logout/login.
-    const channelName = `productos-changes-${Date.now()}`
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, fetchProductos)
-      .subscribe()
-
-    return () => supabase.removeChannel(channel)
+  useEffect(() => { 
+    fetchProductos() 
+    function onWake() {
+      if (document.visibilityState === 'visible') fetchProductos()
+    }
+    document.addEventListener('visibilitychange', onWake)
+    return () => document.removeEventListener('visibilitychange', onWake)
   }, [])
-
-  if (loading) return <div className="text-center py-12 text-gray-400">Cargando inventario...</div>
 
   const totalProductos = productos.length
   const stockBajo      = productos.filter(p => p.stock <= 5).length
 
+  // PullToRefresh envuelve TODO — incluyendo el estado de carga.
+  // Si la página queda atascada en "Cargando..." al volver de un tab en
+  // segundo plano, el usuario puede jalar hacia abajo para forzar un refetch
+  // y romper el loop infinito, incluso sin datos visibles.
   return (
     <PullToRefresh onRefresh={fetchProductos}>
-      <div className="space-y-4">
-        {/* Resumen */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-            <p className="text-3xl font-bold text-primary">{totalProductos}</p>
-            <p className="text-xs text-gray-500 mt-1">Productos activos</p>
+      {loading ? (
+        <div className="text-center py-12 text-gray-400">Cargando inventario...</div>
+      ) : (
+        <div className="space-y-4">
+          {/* Resumen */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+              <p className="text-3xl font-bold text-primary">{totalProductos}</p>
+              <p className="text-xs text-gray-500 mt-1">Productos activos</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+              <p className={`text-3xl font-bold ${stockBajo > 0 ? 'text-red-500' : 'text-green-500'}`}>{stockBajo}</p>
+              <p className="text-xs text-gray-500 mt-1">Stock crítico (≤5)</p>
+            </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-            <p className={`text-3xl font-bold ${stockBajo > 0 ? 'text-red-500' : 'text-green-500'}`}>{stockBajo}</p>
-            <p className="text-xs text-gray-500 mt-1">Stock crítico (≤5)</p>
-          </div>
-        </div>
 
-        {/* Lista de productos */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-bold text-gray-800 text-sm">Inventario en tiempo real</h2>
-            <button onClick={fetchProductos} className="text-xs text-primary hover:underline">Actualizar</button>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {productos.map(p => {
-              const level = stockLevel(p.stock)
-              return (
-                <div key={p.id} className="px-4 py-3 flex items-center gap-3">
-                  <div className={`flex-shrink-0 w-2 h-2 rounded-full ${level.dot}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800 text-sm truncate">{p.nombre}</p>
-                    {p.descripcion && <p className="text-xs text-gray-400 truncate">{p.descripcion}</p>}
+          {/* Lista de productos */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-bold text-gray-800 text-sm">Inventario en tiempo real</h2>
+              <button onClick={fetchProductos} className="text-xs text-primary hover:underline">Actualizar</button>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {productos.map(p => {
+                const level = stockLevel(p.stock)
+                return (
+                  <div key={p.id} className="px-4 py-3 flex items-center gap-3">
+                    <div className={`flex-shrink-0 w-2 h-2 rounded-full ${level.dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 text-sm truncate">{p.nombre}</p>
+                      {p.descripcion && <p className="text-xs text-gray-400 truncate">{p.descripcion}</p>}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900 text-sm">{p.stock}</p>
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${level.color}`}>
+                        {level.label}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-900 text-sm">{p.stock}</p>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${level.color}`}>
-                      {level.label}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </PullToRefresh>
   )
 }

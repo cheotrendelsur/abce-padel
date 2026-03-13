@@ -17,18 +17,40 @@ export default function HistorialVentas({ userId, refreshKey }) {
 
   const fetchVentas = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('ventas')
-      .select(`*, venta_items(cantidad, productos(nombre))`)
-      .eq('vendedor_id', userId)
-      .order('fecha_venta', { ascending: false })
-      .limit(50)
+    try {
+      const peticion = (async () => {
+        await supabase.auth.getSession()
+        const { data, error } = await supabase
+          .from('ventas')
+          .select(`*, venta_items(cantidad, productos(nombre))`)
+          .eq('vendedor_id', userId)
+          .order('fecha_venta', { ascending: false })
+          .limit(50)
+        if (error) throw error
+        return data
+      })()
 
-    setVentas(data || [])
-    setLoading(false)
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 8000)
+      )
+
+      const data = await Promise.race([peticion, timeout])
+      setVentas(data || [])
+    } catch (err) {
+      console.error('Error cargando historial:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [userId])
 
-  useEffect(() => { fetchVentas() }, [fetchVentas, refreshKey])
+  useEffect(() => { 
+    fetchVentas() 
+    function onWake() {
+      if (document.visibilityState === 'visible') fetchVentas()
+    }
+    document.addEventListener('visibilitychange', onWake)
+    return () => document.removeEventListener('visibilitychange', onWake)
+  }, [fetchVentas, refreshKey])
 
   if (loading) return (
     <div className="text-center py-8 text-gray-400 text-sm">Cargando historial...</div>
