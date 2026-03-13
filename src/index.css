@@ -2,6 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   OVERSCROLL / PULL-TO-REFRESH PREVENTION (GLOBAL)
+   Bloquea el pull-to-refresh nativo del browser en toda la app.
+   Las páginas que necesitan pull-to-refresh propio (InventarioPage,
+   ClubesPage) usan el componente <PullToRefresh> que maneja sus propios
+   gestos táctiles de forma controlada.
+   Capa CSS + capa JS (App.jsx usePreventOverscroll) son ambas necesarias:
+   - CSS: elimina scroll-chaining y glow de overscroll en elementos scrolleables
+   - JS: cancela el evento touchmove en superficies no-scrolleables
+───────────────────────────────────────────────────────────────────────────── */
+
+html {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  height: 100%;
+  overflow: hidden;
+  -webkit-overflow-scrolling: auto;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  /* position:fixed es la técnica más robusta en iOS Safari para eliminar
+     el rubber-band scroll a nivel de documento */
+  position: fixed;
+  width: 100%;
+  /* Safe areas: notch de iPhone y barra de Android */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* El root de React: único contexto de scroll — los hijos hacen opt-in */
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: relative;
+}
+
 /* ─── CSS variables para safe areas ─────────────────────────────────────────── */
 :root {
   --sat: env(safe-area-inset-top);
@@ -98,11 +148,16 @@
 
   /* ── Contenedores scrolleables ───────────────────────────────────────────── */
 
+  /* Los contenedores con overflow-y-auto hacen opt-in al scroll nativo iOS
+     y contienen el overscroll para que no se propague al documento padre */
+  /* Los contenedores con overflow-y-auto hacen opt-in al scroll nativo iOS
+     y contienen el overscroll para que no se propague al documento padre */
   .overflow-y-auto,
   .overflow-y-scroll,
   .overflow-auto,
   .overflow-scroll {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   /* Ocultar scrollbar manteniendo la funcionalidad */
